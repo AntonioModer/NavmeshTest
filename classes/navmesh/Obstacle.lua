@@ -2,11 +2,9 @@
 version 0.0.1
 HELP:
 	+ 
-TODO:
-	- Polygon существует вне класса Cell
 --]]
 
-local ClassParent = require('Class')																										-- reserved; you can change the string-name of import-module (parent Class) 
+local ClassParent = require('classes.navmesh.Cell')																								-- reserved; you can change the string-name of import-module (parent Class) 
 local ThisModule																																-- reserved
 if ClassParent then																																-- reserved
 	ThisModule = ClassParent:_newClass(...)																										-- reserved
@@ -22,8 +20,7 @@ end																																				-- reserved
 
 
 -- variables static public
-ThisModule.vertices = {}
-ThisModule.clipper = false																													-- <clipper polygon object> or false
+
 
 -- methods static private
 
@@ -32,8 +29,6 @@ ThisModule.clipper = false																													-- <clipper polygon objec
 
 
 -- methods static public
-
--- arg.vertices = <table>
 function ThisModule:newObject(arg)																												-- rewrite parent method
 	if self.destroyed then self:destroyedError() end																							-- reserved
 	
@@ -41,15 +36,9 @@ function ThisModule:newObject(arg)																												-- rewrite parent 
 	local object = ClassParent.newObject(self, arg)																								-- be sure to call the parent method
 	
 	-- nonstatic variables, methods; init new variables from methods arguments
-	object.vertices = arg.vertices or self.vertices																								-- example: {1, 1, 2, 1, 2, 2}
+	
 	
 	return object																																-- be sure to return new object
-end
-
-function ThisModule:draw()
-	if self.destroyed then return nil end																										-- reserved; тут не нужен вызов ошибки
-	
-	
 end
 
 return ThisModule																																-- reserved

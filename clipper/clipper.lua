@@ -228,66 +228,9 @@ ffi.metatype('clipper_polygons', {__index = polygons})
 ffi.metatype('clipper', {__index = clipper})
 
 return {
-new = clipper.new,
-polygon = polygon.new,
-polygons = polygons.new,
-C = C,
-
------------------------------------------------------------- my
---[[
-version 0.0.1
---]]
-
-executeOperation = {intersection='intersection', union='union', difference='difference', xor='xor'},
-fillType = {even_odd='even_odd', non_zero='non_zero', positive='positive', negative='negative'},
-
-checkType = {
-	clipper_Polygon = function (var)
-		if string.find(tostring(var), "clipper_Polygon") and not string.find(tostring(var), "clipper_Polygons") then
-			return  true
-		else
-			return  false
-		end
-	end,
-	clipper_Polygons = function (var)
-		local result = string.find(tostring(var), "clipper_Polygons")
-		if result then
-			result = true
-		else
-			result = false
-		end
-		return result
-	end	
-},
-
-newPolygon = function (self, tablePoints)
-	assert(#tablePoints > 0, "#table <= 0")
-	local clipperPolygon = self.polygon()
-	for i=1, #tablePoints, 2 do
-		clipperPolygon:add(tablePoints[i], tablePoints[i+1])
-	end
-	return clipperPolygon
-end,
-
-newPolygonsList = function (self, tableClipperPolygons)
-	assert(#tableClipperPolygons > 0, "#table <= 0")
-	local clipperPolygonsList = self.polygons()
-	for i, clipperPolygon in ipairs(tableClipperPolygons) do
-		assert(self.checkType.clipper_Polygon(clipperPolygon), "in table variable at index "..i.." is not clipper_Polygon or clipper_Polygons type")
-		clipperPolygonsList:add(clipperPolygon)
-	end
-	return clipperPolygonsList
-end,
-
-clip = function (self, subjectPolygon, clipPolygon)
-	assert(self.checkType.clipper_Polygon(subjectPolygon) or self.checkType.clipper_Polygons(subjectPolygon), "argument1 not clipper_Polygon or clipper_Polygons type")
-	assert(self.checkType.clipper_Polygon(clipPolygon) or self.checkType.clipper_Polygons(clipPolygon), "argument2 not clipper_Polygon or clipper_Polygons type")
-	
-	local clO = self.new()																		-- clipper object
-	clO:add_subject(subjectPolygon)
-	clO:add_clip(clipPolygon)
-	return clO:execute(self.executeOperation.difference, self.fillType.even_odd, self.fillType.even_odd, true)
-end
-------------------------------------------------------------	
+	new = clipper.new,
+	polygon = polygon.new,
+	polygons = polygons.new,
+	C = C
 }
 

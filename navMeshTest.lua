@@ -1,6 +1,6 @@
 --[[
 Copyright © Savoshchanka Anton Aleksandrovich, 2015
-version 0.0.1
+version 0.0.2
 HELP:
 	+ https://love2d.org/forums/viewtopic.php?f=5&t=81229
 	+ clipperTest version 0.0.4
@@ -10,7 +10,11 @@ TODO:
 			-? похож на Graph
 		-+ Polygon
 			-? похож на Node
-		- TODO1 внедрить
+		-+ Obstacle
+		-+ TODO1 внедрить
+		- рефакторинг кода
+		- тестирование
+		- поработать над thisModule.result	
 	- алгоритм
 		- для каждого полигона проверяем внутри ли он остальных полигонов
 			- если да, то
@@ -54,21 +58,86 @@ TODO:
 --]]
 
 local thisModule = {}
+local Cell = require('classes.navmesh.Cell')
+local Obstacle = require('classes.navmesh.Obstacle')
+
+-------------------------------------------------- clipper
+local clipperModule = require("clipper.clipper")
+
+------------- my
+--[[
+version 0.0.2
+--]]
+do
+
+clipperModule.executeOperation = {intersection='intersection', union='union', difference='difference', xor='xor'}
+clipperModule.fillType = {even_odd='even_odd', non_zero='non_zero', positive='positive', negative='negative'}
+
+clipperModule.checkType = {}
+function clipperModule.checkType.clipper_Polygon(var)
+	if string.find(tostring(var), "clipper_Polygon") and not string.find(tostring(var), "clipper_Polygons") then
+		return  true
+	else
+		return  false
+	end
+end
+function clipperModule.checkType.clipper_Polygons(var)
+	local result = string.find(tostring(var), "clipper_Polygons")
+	if result then
+		result = true
+	else
+		result = false
+	end
+	return result
+end
+
+function clipperModule:newPolygon(tablePoints)
+	assert(#tablePoints > 0, "#table <= 0")
+	local clipperPolygon = self.polygon()
+	for i=1, #tablePoints, 2 do
+		clipperPolygon:add(tablePoints[i], tablePoints[i+1])
+	end
+	return clipperPolygon
+end
+
+function clipperModule:newPolygonsList(tablePolygonsObjects)
+	local empty = true
+	local clipperPolygonsList = self.polygons()
+	for k, polygon in pairs(tablePolygonsObjects) do
+--		assert(self.checkType.clipper_Polygon(polygon.clipper), "in table variable at key("..tostring(k)..") is not clipper_Polygon or clipper_Polygons type")
+		if self.checkType.clipper_Polygon(polygon.clipper) then
+			clipperPolygonsList:add(polygon.clipper)
+			empty = false
+		end
+	end
+	if empty then return false end
+	return clipperPolygonsList
+end
+
+function clipperModule:clip(subjectPolygon, clipPolygon)
+	assert(self.checkType.clipper_Polygon(subjectPolygon) or self.checkType.clipper_Polygons(subjectPolygon), "argument1 not clipper_Polygon or clipper_Polygons type")
+	assert(self.checkType.clipper_Polygon(clipPolygon) or self.checkType.clipper_Polygons(clipPolygon), "argument2 not clipper_Polygon or clipper_Polygons type")
+	
+	local clO = self.new()																		-- clipper object
+	clO:add_subject(subjectPolygon)
+	clO:add_clip(clipPolygon)
+	return clO:execute(self.executeOperation.difference, self.fillType.even_odd, self.fillType.even_odd, true)
+end
+end
+------------------------------------------------------------	
 
 ------------------------- cell
 do
-	thisModule.cell = {}
-	thisModule.cell.polygons = {}
-	thisModule.cell.polygons[1] = {
+	thisModule.cell = Cell:newObject()
+	thisModule.cell:addNewPolygon({vertices = {
 		200, 110,
 		600, 110,
 		600, 510,
 		200, 510
-	}
-	thisModule.cell.clipperPolygons = {}
+	}})
 
 	-- test clean()
---	thisModule.cell.polygons[1] = {
+--	{
 --		10*1, 10*1,
 --		100*1, 10*1,
 --		100*1, 100*1,
@@ -79,27 +148,19 @@ end
 
 -------------------------- obstacle
 do
-	thisModule.obstacle = {}
-	thisModule.obstacle.polygons = {}
-	thisModule.obstacle.polygons[1] = {
+	thisModule.obstacle = Obstacle:newObject()
+	thisModule.obstacle:addNewPolygon({vertices = {
 		150, 150,
 		250, 150,
 		250, 250,
 		150, 250
-	}
-	thisModule.obstacle.polygons[2] = {
+	}})
+	thisModule.obstacle:addNewPolygon({vertices = {
 		0, 0,
 		1, 0,
 		1, 1,
 		0, 1
-	}		
-	thisModule.obstacle.clipperPolygons = {}
-	function thisModule.obstacle:refreshClipperPolygons()
-		self.clipperPolygons = {}
-		for i, polygon in ipairs(self.polygons) do
-			table.insert(self.clipperPolygons, thisModule.clipper:newPolygon(polygon))
-		end
-	end	
+	}})
 end
 
 -------------------------- result
@@ -108,9 +169,9 @@ do
 	thisModule.result.polygons = {}
 	function thisModule.result:refreshFromClipperResult()
 		self.polygons = {}
-		for polyN1=1, thisModule.clipper.result:size() do
-			local clipperPolygons = thisModule.clipper.result:get(polyN1)
-			clipperPolygons = thisModule.clipper.polygons(clipperPolygons)
+		for polyN1=1, clipperModule.result:size() do
+			local clipperPolygons = clipperModule.result:get(polyN1)
+			clipperPolygons = clipperModule.polygons(clipperPolygons)
 			clipperPolygons = clipperPolygons:clean()										-- try FIX2 BUG3
 			clipperPolygons = clipperPolygons:simplify()									-- FIX BUG4
 			
@@ -128,21 +189,25 @@ do
 end
 
 function thisModule:clip()
-	if #thisModule.cell.clipperPolygons > 0 then
-		thisModule.obstacle:refreshClipperPolygons()
+	if thisModule.cell.polygonsCount > 0 then
 		
-		local p1 = thisModule.clipper:newPolygonsList(thisModule.cell.clipperPolygons)
-		local p2 = thisModule.clipper:newPolygonsList(thisModule.obstacle.clipperPolygons)		
-		thisModule.clipper.result = thisModule.clipper:clip(p1, p2)
+		-- refresh clipper polygons
+		for _, polygon in pairs(thisModule.obstacle.polygons) do
+			polygon.clipper = clipperModule:newPolygon(polygon.vertices)
+		end
+		
+		local p1 = clipperModule:newPolygonsList(thisModule.cell.polygons)
+		local p2 = clipperModule:newPolygonsList(thisModule.obstacle.polygons)
+		clipperModule.result = clipperModule:clip(p1, p2)
 		
 		-- вроде не работает тут как ожидал
---		thisModule.clipper.result = thisModule.clipper.result:clean()
---		thisModule.clipper.result = thisModule.clipper.result:simplify()										-- BUG4 смотри картинку
+--		clipperModule.result = clipperModule.result:clean()
+--		clipperModule.result = clipperModule.result:simplify()										-- BUG4 смотри картинку
 		
 		thisModule.result:refreshFromClipperResult()
 		
-		-- test TODO1
-		if true then
+		-- test
+		if false then
 			local removeIndexes, polygonsConvex = {}, {}
 			for i, polygon in ipairs(thisModule.result.polygons) do
 				if not love.math.isConvex(polygon) then
@@ -165,16 +230,18 @@ function thisModule:clip()
 	end		
 end
 
--------------------------- clipper
-thisModule.clipper = require("clipper.clipper")
+---------------------------------------- test
 
-table.insert(thisModule.cell.clipperPolygons, thisModule.clipper:newPolygon(thisModule.cell.polygons[1]))
-table.insert(thisModule.obstacle.clipperPolygons, thisModule.clipper:newPolygon(thisModule.obstacle.polygons[1]))
-table.insert(thisModule.obstacle.clipperPolygons, thisModule.clipper:newPolygon(thisModule.obstacle.polygons[2]))
+for _, polygon in pairs(thisModule.cell.polygons) do
+	polygon.clipper = clipperModule:newPolygon(polygon.vertices)
+end
+for _, polygon in pairs(thisModule.obstacle.polygons) do
+	polygon.clipper = clipperModule:newPolygon(polygon.vertices)
+end
 
-thisModule.clipper.result = thisModule.clipper:clip(thisModule.clipper:newPolygonsList(thisModule.cell.clipperPolygons), thisModule.clipper:newPolygonsList(thisModule.obstacle.clipperPolygons))
+clipperModule.result = clipperModule:clip(clipperModule:newPolygonsList(thisModule.cell.polygons), clipperModule:newPolygonsList(thisModule.obstacle.polygons))
 thisModule.result:refreshFromClipperResult()
-
+-------------------------------------
 
 
 function thisModule:update(dt)
@@ -182,18 +249,20 @@ function thisModule:update(dt)
 	----------------------------------------------------------------------------------------- update obstacle
 	-------------------------- двигаем obstacle
 	local x, y = love.mouse.getPosition()
-	thisModule.obstacle.polygons[1] = {
+	thisModule.obstacle:deleteAllPolygons()
+	thisModule.obstacle:addNewPolygon({vertices = {
 		x, y,
 		x+50, y,
 		x+50, y+50,
 		x, y+50
-	}
-	thisModule.obstacle.polygons[2] = {
+	}})
+	thisModule.obstacle:addNewPolygon({vertices = {
 		0, 0,
 		1, 0,
 		1, 1,
 		0, 1
-	}	
+	}})
+	
 	--------------------------- clipper
 	if true then
 		thisModule:clip()
@@ -214,19 +283,20 @@ function thisModule:update(dt)
 			if fixBUG3.need then
 				
 				------------------------------ scale obstacle to +1
+				thisModule.obstacle:deleteAllPolygons()
 				fixBUG3.x, fixBUG3.y = x-1, y-1
-				thisModule.obstacle.polygons[1] = {
+				thisModule.obstacle:addNewPolygon({vertices = {
 					fixBUG3.x, fixBUG3.y,
 					fixBUG3.x+50+2, fixBUG3.y,
 					fixBUG3.x+50+2, fixBUG3.y+50+2,
 					fixBUG3.x, fixBUG3.y+50+2
-				}
-				thisModule.obstacle.polygons[2] = {
+				}})
+				thisModule.obstacle:addNewPolygon({vertices = {
 					0, 0,
 					1, 0,
 					1, 1,
 					0, 1
-				}
+				}})
 				thisModule:clip()
 				
 				------------------------------- перепроверяем
@@ -245,18 +315,19 @@ function thisModule:update(dt)
 				
 				-------------------------------- если проблема не исправлена, то отменяем предыдущий результат; чтобы было все точно, без лишнего увеличения obstacle
 				if not fixBUG3.need then
-					thisModule.obstacle.polygons[1] = {
+					thisModule.obstacle:deleteAllPolygons()
+					thisModule.obstacle:addNewPolygon({vertices = {
 						x, y,
 						x+50, y,
 						x+50, y+50,
 						x, y+50
-					}
-					thisModule.obstacle.polygons[2] = {
+					}})
+					thisModule.obstacle:addNewPolygon({vertices = {
 						0, 0,
 						1, 0,
 						1, 1,
 						0, 1
-					}	
+					}})
 					thisModule:clip()				
 				end
 			
@@ -268,14 +339,20 @@ end
 
 function thisModule:mousePressed(x, y, button)
 	if button == 'l' then
-		-- при нажатии на кнопку мыши запоминаем вырезаную cell, и уже вырезаем в ней в дальнейшем
-		thisModule.cell.polygons = thisModule.result.polygons
-		do
-			thisModule.cell.clipperPolygons = {}
-			for i, polygon in ipairs(thisModule.cell.polygons) do
-				table.insert(thisModule.cell.clipperPolygons, thisModule.clipper:newPolygon(polygon))
-			end
---			print(#thisModule.cell.polygons)
+--		-- при нажатии на кнопку мыши запоминаем вырезаную cell, и уже вырезаем в ней в дальнейшем
+--		thisModule.cell.polygons = thisModule.result.polygons
+--		do
+--			thisModule.cell.clipperPolygons = {}
+--			for i, polygon in ipairs(thisModule.cell.polygons) do
+--				table.insert(thisModule.cell.clipperPolygons, clipperModule:newPolygon(polygon))
+--			end
+----			print(#thisModule.cell.polygons)
+--		end
+		
+		thisModule.cell:deleteAllPolygons()
+		for i, polygon in pairs(thisModule.result.polygons) do
+			local newPolygon = thisModule.cell:addNewPolygon({vertices = polygon})
+			newPolygon.clipper = clipperModule:newPolygon(newPolygon.vertices)
 		end
 	end	
 end
@@ -285,20 +362,14 @@ function thisModule:draw()
 	-- cell.polygons
 	if true then
 		love.graphics.setColor(0, 255, 0, 255)
-		for i, polygon in ipairs(thisModule.cell.polygons) do
-			local triangles
-			local ok, out = pcall(love.math.triangulate, polygon)
-			if ok then
-				triangles = out
-				for i, triangle in ipairs(triangles) do
-					love.graphics.polygon("fill", triangle)
-				end					
-			else
-				love.graphics.print('cant draw(triangulate) cell.polygons', 0, 0, 0, 1, 1)
-			end
+		local ok, out = pcall(thisModule.cell.draw, thisModule.cell)
+		if ok then
+			
+		else
+			love.graphics.print('cant draw(triangulate) cell.polygons: '..out, 0, 0, 0, 1, 1)
 		end
-	end	
-
+	end
+		
 	love.graphics.setLineWidth(2)
 	love.graphics.setLineStyle('rough')
 	love.graphics.setLineJoin('none')
@@ -326,12 +397,12 @@ function thisModule:draw()
 	love.graphics.setLineWidth(1)
 	
 	love.graphics.setColor(255, 0, 0, 255)
-	love.graphics.polygon('fill', thisModule.obstacle.polygons[1])
+	thisModule.obstacle:draw()
 	
 	love.graphics.setColor(0, 255, 0, 255)
-	love.graphics.print('#cell.polygons = '..#thisModule.cell.polygons, 0, 40, 0, 1, 1)
+	love.graphics.print('cell.polygonsCount = '..thisModule.cell.polygonsCount, 0, 40, 0, 1, 1)
 	love.graphics.setColor(0, 0, 255, 255)
-	love.graphics.print('clipper.result:size() = '..thisModule.clipper.result:size(), 0, 60, 0, 1, 1)
+	love.graphics.print('clipper.result:size() = '..clipperModule.result:size(), 0, 60, 0, 1, 1)
 	love.graphics.print('#result.polygons = '..#thisModule.result.polygons, 0, 80, 0, 1, 1)
 	local mx, my = love.mouse.getPosition()
 	love.graphics.print('mouse position() = '..mx..', '..my, 0, 100, 0, 1, 1)
