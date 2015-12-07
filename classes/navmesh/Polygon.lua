@@ -1,9 +1,12 @@
 --[[
 version 0.0.1
 HELP:
-	+ 
+	+ Polygon существует вне класса Cell
+	+ похож на Node
 TODO:
-	- Polygon существует вне класса Cell
+	-NO Class Node
+		-? адаптировать код 
+		-? унаследовать
 --]]
 
 local ClassParent = require('Class')																										-- reserved; you can change the string-name of import-module (parent Class) 
@@ -23,7 +26,9 @@ end																																				-- reserved
 
 -- variables static public
 ThisModule.vertices = {}
-ThisModule.clipper = false																													-- <clipper polygon object> or false
+ThisModule.clipper = false																														-- <clipper polygon object> or false
+ThisModule.imHole = false																														-- im a poligon-hole
+ThisModule.myHoles = {}
 
 -- methods static private
 

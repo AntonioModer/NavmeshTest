@@ -1,30 +1,30 @@
 --[[
 Copyright © Savoshchanka Anton Aleksandrovich, 2015
-version 0.0.2
+version 0.0.3
 HELP:
 	+ https://love2d.org/forums/viewtopic.php?f=5&t=81229
 	+ clipperTest version 0.0.4
 TODO:
 	- Class
 		-+ Cell
-			-? похож на Graph
 		-+ Polygon
-			-? похож на Node
 		-+ Obstacle
-		-+ TODO1 внедрить
+		-+  внедрить
 		- рефакторинг кода
 		- тестирование
 		- поработать над thisModule.result	
-	- алгоритм
-		- для каждого полигона проверяем внутри ли он остальных полигонов
-			- если да, то
-				- clipper-ом не работаем
-				-? version 1
-					- запоминаем его как дырку полигона
-					- вырезаем и обновляем результат для полигона с дыркой
-					- удаляем из cell
-					- результат используем только для поиска пути, не для вырезания
-				-? version 2
+	- TODO1 алгоритм
+		- работаем clipper-ом
+		-+ для каждого полигона проверяем внутри ли он остальных полигонов (смотри CutHolesTest.cut.isPolygonInPolygon)
+			-+ если да, то
+				-?YES version 1
+					-+ запоминаем его как дырку-полигон в вырезаемом полигоне
+					- шаг
+						-? вырезаем и обновляем результат для полигона с дыркой
+						-? удаляем из cell; 
+						- не обязательно делать этот шаг, можно просто запомнить этот полигон как дырку
+					- результат с вырезанной дыркой используем только для поиска пути или рисования, не для вырезания (смотри CutHolesTest.cut.cutHoles)
+				-?NO version 2
 					- вырезаем дырку в нужном полигоне
 					- если нужно (если полигон вогнутый), то результат разделяем на выпуклые полигоны, и дальше работаем с выпуклыми
 						+ test Hardoncollider Polygon:splitConvex()
@@ -32,6 +32,9 @@ TODO:
 						- вогнутый полигон удаляем из cell
 						- добавляем новые выпуклые полигоны в cell
 			- если нет, то работаем clipper-ом
+		- TODO2 разобраться с случай1.png
+			- как определить последовательность вырезания дырок?
+				- всегда ли будет правильная последовательность генерируемая clipper?
 --]]
 
 --[[
@@ -225,8 +228,19 @@ function thisModule:clip()
 				end
 			end			
 		end
-		
-		
+		-- алгоритм version 1 test
+		if false then
+			for i1, polygon1 in ipairs(thisModule.result.polygons) do
+				for i2, polygon2 in ipairs(thisModule.result.polygons) do
+					if polygon1 ~= polygon2 and CutHolesTest.cut.isPolygonInPolygon(polygon1, polygon2) then
+						polygon1:addHole(polygon2)
+					end
+				end
+			end
+			
+			-- вырезаем дырки
+			-- ...
+		end
 	end		
 end
 

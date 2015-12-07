@@ -1,7 +1,7 @@
 --[[
 version 0.0.1
 HELP:
-	+ 
+	+ похож на Graph
 --]]
 
 local ClassParent = require('Class')																										-- reserved; you can change the string-name of import-module (parent Class) 

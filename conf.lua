@@ -13,7 +13,7 @@ function love.conf(argC)
 	argC.version = "0.9.2"																														-- The LÖVE version this game was made for
 	argC.console = true																															-- Windows only
 
-	config.gameVersion = "0.0.2"
+	config.gameVersion = "0.0.3"
 	argC.window.title = [[navMeshTest, v]] .. config.gameVersion .. " (" .. os.date("%Y.%m.%d-%H.%M.%S") .. [[); Copyright © Savoshchanka Anton, 2015 (twitter.com/AntonioModer); LÖVE 2D-framework (love2d.org)]]
 	argC.window.icon = nil																														-- Filepath to an image to use as the window's icon (string)
 	argC.window.width = 800
