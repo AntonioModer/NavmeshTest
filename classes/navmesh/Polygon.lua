@@ -28,7 +28,6 @@ end																																				-- reserved
 ThisModule.vertices = {}
 ThisModule.clipper = false																														-- <clipper polygon object> or false
 ThisModule.imHole = false																														-- im a poligon-hole
-ThisModule.myHoles = {}
 
 -- methods static private
 
@@ -47,6 +46,7 @@ function ThisModule:newObject(arg)																												-- rewrite parent 
 	
 	-- nonstatic variables, methods; init new variables from methods arguments
 	object.vertices = arg.vertices or self.vertices																								-- example: {1, 1, 2, 1, 2, 2}
+	object.myPolygonHoles = {}
 	
 	return object																																-- be sure to return new object
 end
@@ -55,6 +55,12 @@ function ThisModule:draw()
 	if self.destroyed then return nil end																										-- reserved; тут не нужен вызов ошибки
 	
 	
+end
+
+function ThisModule:addPolygonHole(polygon)
+	if self.destroyed or polygon.destroyed or self == polygon then return nil end																										-- reserved; тут не нужен вызов ошибки
+	
+	self.myPolygonHoles[polygon] = polygon
 end
 
 return ThisModule																																-- reserved

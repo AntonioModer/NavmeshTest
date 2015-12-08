@@ -12,12 +12,14 @@ TODO:
 		-+  внедрить
 		- рефакторинг кода
 		- тестирование
-		- поработать над thisModule.result	
+		- TODO1.1 поработать над thisModule.result
+			- полигоны нужно чтоб были Class Polygon, вместо обычной таблицы
+				- можно сделать Class Cell
 	- TODO1 алгоритм
 		- работаем clipper-ом
 		-+ для каждого полигона проверяем внутри ли он остальных полигонов (смотри CutHolesTest.cut.isPolygonInPolygon)
 			-+ если да, то
-				-?YES version 1
+				-+?YES version 1
 					-+ запоминаем его как дырку-полигон в вырезаемом полигоне
 					- шаг
 						-? вырезаем и обновляем результат для полигона с дыркой
@@ -189,6 +191,8 @@ do
 			end
 		end	
 	end
+	thisModule.result.draw = {}
+	thisModule.result.draw.polygons = {}
 end
 
 function thisModule:clip()
@@ -226,14 +230,18 @@ function thisModule:clip()
 				for _, polygon in ipairs(polygonList) do
 					table.insert(thisModule.result.polygons, {polygon:unpack()})
 				end
-			end			
+			end
 		end
 		-- алгоритм version 1 test
-		if false then
+		if true then
+			for i, polygon in ipairs(thisModule.result.polygons) do
+				polygon.myPolygonHoles = {}
+			end
 			for i1, polygon1 in ipairs(thisModule.result.polygons) do
 				for i2, polygon2 in ipairs(thisModule.result.polygons) do
-					if polygon1 ~= polygon2 and CutHolesTest.cut.isPolygonInPolygon(polygon1, polygon2) then
-						polygon1:addHole(polygon2)
+					if polygon1 ~= polygon2 and thisModule.cut.isPolygonInPolygon(polygon1, polygon2) then
+--						polygon1:addPolygonHole(polygon2)
+						print(i2)
 					end
 				end
 			end
@@ -242,6 +250,14 @@ function thisModule:clip()
 			-- ...
 		end
 	end		
+end
+
+-------------------------- cut
+do
+	thisModule.cut = {}
+	thisModule.cut.isPolygonInPolygon = require("math.itraykov.poly").polygon
+	thisModule.cut.getPolygonIntersection = require("math.mlib.mlib").polygon.getPolygonIntersection
+	thisModule.cut.cutHoles = require("math.itraykov.poly2").cutholes	
 end
 
 ---------------------------------------- test
