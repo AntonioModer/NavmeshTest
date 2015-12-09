@@ -46,7 +46,9 @@ function ThisModule:newObject(arg)																												-- rewrite parent 
 	
 	-- nonstatic variables, methods; init new variables from methods arguments
 	object.vertices = arg.vertices or self.vertices																								-- example: {1, 1, 2, 1, 2, 2}
-	object.myPolygonHoles = {}
+	object.cut = {}
+	object.cut.polygonHoles = {}
+	object.cut.result = {}
 	
 	return object																																-- be sure to return new object
 end
@@ -60,7 +62,7 @@ end
 function ThisModule:addPolygonHole(polygon)
 	if self.destroyed or polygon.destroyed or self == polygon then return nil end																										-- reserved; тут не нужен вызов ошибки
 	
-	self.myPolygonHoles[polygon] = polygon
+	self.cut.polygonHoles[polygon] = polygon
 end
 
 return ThisModule																																-- reserved

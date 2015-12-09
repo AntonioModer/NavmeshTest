@@ -160,7 +160,7 @@ end
 
 local _queue = {}
 function poly.cutholes(p, s, output)
-  assert(p and s)
+  assert(p and s, tostring(p)..' and '..tostring(s))
   -- build queue
   for i = 1, #s do
     -- ignore holes with zero vertices

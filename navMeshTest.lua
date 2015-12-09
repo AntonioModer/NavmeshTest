@@ -1,6 +1,6 @@
 --[[
 Copyright © Savoshchanka Anton Aleksandrovich, 2015
-version 0.0.3
+version 0.0.4 alpha
 HELP:
 	+ https://love2d.org/forums/viewtopic.php?f=5&t=81229
 	+ clipperTest version 0.0.4
@@ -12,11 +12,11 @@ TODO:
 		-+  внедрить
 		- рефакторинг кода
 		- тестирование
-		- TODO1.1 поработать над thisModule.result
-			- полигоны нужно чтоб были Class Polygon, вместо обычной таблицы
-				- можно сделать Class Cell
-	- TODO1 алгоритм
-		- работаем clipper-ом
+		-+ TODO1.1 поработать над thisModule.result
+			-+ полигоны нужно чтоб были Class Polygon, вместо обычной таблицы
+				-+ можно сделать Class Cell
+	-+ TODO1 алгоритм
+		-+ работаем clipper-ом
 		-+ для каждого полигона проверяем внутри ли он остальных полигонов (смотри CutHolesTest.cut.isPolygonInPolygon)
 			-+ если да, то
 				-+?YES version 1
@@ -25,7 +25,7 @@ TODO:
 						-? вырезаем и обновляем результат для полигона с дыркой
 						-? удаляем из cell; 
 						- не обязательно делать этот шаг, можно просто запомнить этот полигон как дырку
-					- результат с вырезанной дыркой используем только для поиска пути или рисования, не для вырезания (смотри CutHolesTest.cut.cutHoles)
+					-+ результат с вырезанной дыркой используем только для поиска пути или рисования, не для вырезания (смотри CutHolesTest.cut.cutHoles)
 				-?NO version 2
 					- вырезаем дырку в нужном полигоне
 					- если нужно (если полигон вогнутый), то результат разделяем на выпуклые полигоны, и дальше работаем с выпуклыми
@@ -33,7 +33,6 @@ TODO:
 							- проблемы с совместимостью с clipper: clean(), simplify()
 						- вогнутый полигон удаляем из cell
 						- добавляем новые выпуклые полигоны в cell
-			- если нет, то работаем clipper-ом
 		- TODO2 разобраться с случай1.png
 			- как определить последовательность вырезания дырок?
 				- всегда ли будет правильная последовательность генерируемая clipper?
@@ -61,6 +60,12 @@ TODO:
 	3. This notice may not be removed or altered from any source distribution.
 	
 --]]
+
+---------------------- test
+--local t = {}
+----local s = {}
+--assert(t and s)
+----------------------
 
 local thisModule = {}
 local Cell = require('classes.navmesh.Cell')
@@ -193,6 +198,9 @@ do
 	end
 	thisModule.result.draw = {}
 	thisModule.result.draw.polygons = {}
+	
+	-- Cell class
+	thisModule.resultCell = Cell:newObject()
 end
 
 function thisModule:clip()
@@ -234,20 +242,51 @@ function thisModule:clip()
 		end
 		-- алгоритм version 1 test
 		if true then
+			-- make resultCell polygons
+			-- недостаток: каждый раз очередь полигонов разная
+			thisModule.resultCell:deleteAllPolygons()
 			for i, polygon in ipairs(thisModule.result.polygons) do
-				polygon.myPolygonHoles = {}
+				local newPolygon = thisModule.resultCell:addNewPolygon({vertices = polygon})
+--				print(polygon, newPolygon.vertices)
+--				newPolygon.clipper = clipperModule:newPolygon(newPolygon.vertices)
 			end
-			for i1, polygon1 in ipairs(thisModule.result.polygons) do
-				for i2, polygon2 in ipairs(thisModule.result.polygons) do
-					if polygon1 ~= polygon2 and thisModule.cut.isPolygonInPolygon(polygon1, polygon2) then
---						polygon1:addPolygonHole(polygon2)
-						print(i2)
+			
+			for _, polygon1 in pairs(thisModule.resultCell.polygons) do
+				for _, polygon2 in pairs(thisModule.resultCell.polygons) do
+					if polygon1 ~= polygon2 and thisModule.cut.isPolygonInPolygon(polygon1.vertices, polygon2.vertices) then
+						polygon1:addPolygonHole(polygon2)
+						polygon2.imHole = true
+--						print(polygon1.vertices)
 					end
 				end
 			end
 			
 			-- вырезаем дырки
-			-- ...
+			if true then
+				thisModule.result.polygons = {}
+				for _, polygon in pairs(thisModule.resultCell.polygons) do
+					if not polygon.imHole then
+						local iHoles = {}
+						for _, hole in pairs(polygon.cut.polygonHoles) do
+							table.insert(iHoles, hole.vertices)
+						end
+						if #iHoles > 0 then
+							local ok, out = pcall(thisModule.cut.cutHoles, polygon.vertices, iHoles)
+							if ok then
+								polygon.cut.result = out																-- вырезаный полигон
+								-- переводим к thisModule.result, чтобы рисовать
+								table.insert(thisModule.result.polygons, polygon.cut.result)								
+							else
+--								table.insert(thisModule.result.polygons, polygon.vertices)	
+							end
+						else
+							table.insert(thisModule.result.polygons, polygon.vertices)							
+						end
+					else
+--						table.insert(thisModule.result.polygons, polygon.vertices)	
+					end
+				end
+			end
 		end
 	end		
 end
@@ -339,7 +378,7 @@ function thisModule:update(dt)
 						break
 					else
 						-- если проблема исправлена
-						print(os.clock(), 'fix bug 3', x, y)
+						print(os.clock(), 'fixed bug 3', x, y)
 					end
 				end
 				
@@ -379,18 +418,23 @@ function thisModule:mousePressed(x, y, button)
 ----			print(#thisModule.cell.polygons)
 --		end
 		
+		-- copy result
 		thisModule.cell:deleteAllPolygons()
-		for i, polygon in pairs(thisModule.result.polygons) do
-			local newPolygon = thisModule.cell:addNewPolygon({vertices = polygon})
+--		for _, polygon in pairs(thisModule.result.polygons) do
+--			local newPolygon = thisModule.cell:addNewPolygon({vertices = polygon})
+--			newPolygon.clipper = clipperModule:newPolygon(newPolygon.vertices)
+--		end			
+		for _, polygon in pairs(thisModule.resultCell.polygons) do
+			local newPolygon = thisModule.cell:addNewPolygon({vertices = polygon.vertices})
 			newPolygon.clipper = clipperModule:newPolygon(newPolygon.vertices)
-		end
+		end	
 	end	
 end
 
 function thisModule:draw()
 	
 	-- cell.polygons
-	if true then
+	if false then
 		love.graphics.setColor(0, 255, 0, 255)
 		local ok, out = pcall(thisModule.cell.draw, thisModule.cell)
 		if ok then
@@ -399,7 +443,7 @@ function thisModule:draw()
 			love.graphics.print('cant draw(triangulate) cell.polygons: '..out, 0, 0, 0, 1, 1)
 		end
 	end
-		
+	
 	love.graphics.setLineWidth(2)
 	love.graphics.setLineStyle('rough')
 	love.graphics.setLineJoin('none')
@@ -412,11 +456,11 @@ function thisModule:draw()
 				triangles = out
 				love.graphics.setColor(0, 0, 255, 255)
 				for i1, triangle in ipairs(triangles) do
-					love.graphics.polygon('line', triangle)
+					love.graphics.polygon('fill', triangle)
 				end
 				
-				love.graphics.setColor(255, 0, 0, 255)
-				love.graphics.print(i, polygon[1], polygon[2], 0, 1.5, 1.5)
+--				love.graphics.setColor(255, 0, 0, 255)
+--				love.graphics.print(i, polygon[1], polygon[2], 0, 1.5, 1.5)
 			else
 				love.graphics.setColor(0, 0, 255, 255)
 				love.graphics.print('cant draw(triangulate) result.polygons', 0, 20, 0, 1, 1)

@@ -13,11 +13,11 @@ function love.conf(argC)
 	argC.version = "0.9.2"																														-- The LÖVE version this game was made for
 	argC.console = true																															-- Windows only
 
-	config.gameVersion = "0.0.3"
+	config.gameVersion = "0.0.4 alpha"
 	argC.window.title = [[navMeshTest, v]] .. config.gameVersion .. " (" .. os.date("%Y.%m.%d-%H.%M.%S") .. [[); Copyright © Savoshchanka Anton, 2015 (twitter.com/AntonioModer); LÖVE 2D-framework (love2d.org)]]
 	argC.window.icon = nil																														-- Filepath to an image to use as the window's icon (string)
-	argC.window.width = 800
-	argC.window.height = 600
+	argC.window.width = 1280
+	argC.window.height = 720
 	argC.window.borderless = false																												-- Remove all border visuals from the window
 	argC.window.resizable = false																												-- Let the window be user-resizable
 	argC.window.minwidth = 1																													-- Minimum window width if the window is resizable
