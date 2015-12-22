@@ -5,17 +5,17 @@ HELP:
 	+ https://love2d.org/forums/viewtopic.php?f=5&t=81229
 	+ clipperTest version 0.0.4
 TODO:
+	- TODO1 рефакторинг кода
 	- Class
 		-+ Cell
 		-+ Polygon
 		-+ Obstacle
 		-+  внедрить
-		- рефакторинг кода
 		- тестирование
-		-+ TODO1.1 поработать над thisModule.result
+		-+ поработать над thisModule.result
 			-+ полигоны нужно чтоб были Class Polygon, вместо обычной таблицы
 				-+ можно сделать Class Cell
-	-+ TODO1 алгоритм
+	-+ алгоритм
 		-+ работаем clipper-ом
 		-+ для каждого полигона проверяем внутри ли он остальных полигонов (смотри CutHolesTest.cut.isPolygonInPolygon)
 			-+ если да, то
