@@ -9,3 +9,8 @@ State of development: paused.
 
 Forum: https://love2d.org/forums/viewtopic.php?f=5&t=81229
 
+Thanks to:
+- Ivan
+- Roland
+- Tanner
+- and other, ... will update soon
